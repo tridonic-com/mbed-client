@@ -80,6 +80,7 @@ public:
         LwIP_IPv6,
         Reserved,
         Nanostack_IPv6,
+        Tridonic_I2C,
         Unknown
     }NetworkStack;
 

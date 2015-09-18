@@ -25,8 +25,8 @@ add_dependencies(all_tests mbed-client-test-helloworld-mbedclient)
 
 endif()
 
-if(TARGET_LIKE_MBED)
-
+if(0)
+#if(TARGET_LIKE_MBED)
 add_executable(mbed-client-test-mbedclient-smokeTest 
         "mbedclient-smokeTest/main.cpp"
         "mbedclient-smokeTest/testconfig.cpp"

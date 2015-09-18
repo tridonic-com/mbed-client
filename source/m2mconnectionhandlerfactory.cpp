@@ -28,7 +28,10 @@ M2MConnectionHandler* M2MConnectionHandlerFactory::createConnectionHandler(M2MCo
     M2MConnectionHandler* ret = NULL;
     M2MConnectionSecurity* sec = NULL;
 
+#if 0
+//should be #ifndef ILB
     sec = new M2MConnectionSecurity();
+#endif
 
     ret = new M2MConnectionHandler(observer, sec, stack);
 
