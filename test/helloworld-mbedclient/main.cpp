@@ -49,6 +49,9 @@ typedef void (*signalhandler_t)(int); /* Function pointer type for ctrl-c */
 #if defined(TARGET_K64F)
 #define OBS_BUTTON SW2
 #define UNREG_BUTTON SW3
+#else
+#define OBS_BUTTON USER_BUTTON
+#define UNREG_BUTTON USER_BUTTON
 #endif
 #endif
 
