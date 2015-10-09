@@ -24,7 +24,7 @@ const int BUFFER_LENGTH = 1024;
 extern const String COAP;
 const int32_t MINIMUM_REGISTRATION_TIME = 60; //in seconds
 const uint64_t ONE_SECOND_TIMER = 1;
-const uint16_t ENDPOINT_LENGTH = 64;
+const uint16_t MAX_ALLOWED_STRING_LENGTH = 64;
 const uint16_t OPTIMUM_LIFETIME = 3600;
 const uint16_t REDUCE_LIFETIME = 900;
 const float REDUCTION_FACTOR = 0.75f;
@@ -143,7 +143,7 @@ const uint8_t LENGTH8 = 0x08;
 const uint8_t LENGTH16 = 0x10;
 const uint8_t LENGTH24 = 0x18;
 
-const int COAP_CONTENT_OMA_TLV_TYPE = 99;
-const int COAP_CONTENT_OMA_JSON_TYPE = 100;
+const uint8_t COAP_CONTENT_OMA_TLV_TYPE = 99;
+const uint8_t COAP_CONTENT_OMA_JSON_TYPE = 100;
 
 #endif // M2MCONSTANTS_H
