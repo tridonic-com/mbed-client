@@ -368,7 +368,7 @@ uint8_t M2MNsdlInterface::received_from_server_callback(struct nsdl_s * /*nsdl_h
                     if( max_time > 0) {
                         char *buffer = (char*)memory_alloc(20);
                         if(buffer) {
-                            int size = snprintf(buffer, 20,"%d",(uint32_t)max_time);
+                            int size = snprintf(buffer, 20,"%lu",(uint32_t)max_time);
                             _endpoint->lifetime_ptr = (uint8_t*)memory_alloc(size+1);
                             if(_endpoint->lifetime_ptr) {
                                 memset(_endpoint->lifetime_ptr, 0, size+1);
@@ -664,7 +664,7 @@ void M2MNsdlInterface::stop_timers()
 void M2MNsdlInterface::timer_expired(M2MTimerObserver::Type type)
 {
     if(M2MTimerObserver::NsdlExecution == type) {
-        sn_nsdl_exec(_counter_for_nsdl);
+        sn_nsdl_exec(_nsdl_handle, _counter_for_nsdl);
         _counter_for_nsdl++;
     } else if(M2MTimerObserver::Registration == type) {
         tr_debug("M2MNsdlInterface::timer_expired - M2MTimerObserver::Registration - Send update registration");
@@ -860,8 +860,8 @@ bool M2MNsdlInterface::create_nsdl_resource(M2MBase *base, const String &name)
                     }
                     resource->resource = buffer;
                     resource->resourcelen = length;
-                    sn_nsdl_update_resource(_nsdl_handle,resource);                    
-                }                
+                    sn_nsdl_update_resource(_nsdl_handle,resource);
+                }
             }
         } else if(_resource) {
             base->set_under_observation(false,this);
@@ -1290,8 +1290,8 @@ void M2MNsdlInterface::send_resource_observation(M2MResourceInstance *resource)
 
         uint16_t number = resource->observation_number();
 
-        observation_number[0] = ((number>>8) & 0xFF);
-        observation_number[1] = (number & 0xFF);
+        observation_number[0] = (number & 0xFF);
+        observation_number[1] = ((number>>8) & 0xFF);
 
         if(number > 0xFF) {
             observation_number_length = 2;

@@ -226,6 +226,83 @@ bool M2MLWClient::create_device_object(M2MDevice::DeviceResource resource,
     return success;
 }
 
+bool M2MLWClient::create_firmware_object(M2MFirmware::FirmwareResource resource,
+                                       const char *value)
+{
+    bool success = false;
+    String value_string;
+    if(value) {
+        value_string += value;
+    }
+    if(!_firmware) {
+        _firmware = M2MInterfaceFactory::create_firmware();
+    }
+    if(_firmware) {
+        if(_firmware->create_resource(resource,value_string)){
+            success = true;
+        } else {
+            success = _firmware->set_resource_value(resource,value);
+        }
+    }
+    return success;
+}
+
+bool M2MLWClient::create_firmware_object()
+{
+    bool success = false;
+    if(!_firmware) {
+        _firmware = M2MInterfaceFactory::create_firmware();
+        success = true;
+    }    
+    return success;
+}
+
+bool M2MLWClient::create_firmware_object(M2MFirmware::FirmwareResource resource,
+                          int64_t value)
+{
+    bool success = false;
+    if(!_firmware) {
+        _firmware = M2MInterfaceFactory::create_firmware();
+    }
+    if(_firmware) {
+        if(_firmware->create_resource(resource,value)) {
+            success = true;
+        } else {
+            success = _firmware->set_resource_value(resource, value);            
+        }
+    }    
+    return success;
+}
+
+bool M2MLWClient::create_firmware_object(M2MFirmware::FirmwareResource resource,
+                                         const uint8_t *value,
+                                         const uint32_t length)
+{
+    bool success = false;
+    if(!_firmware) {
+        _firmware = M2MInterfaceFactory::create_firmware();
+    }
+    if(_firmware) {
+            success = _firmware->set_resource_value(resource, value, length);
+    }
+    return success;
+}
+
+void M2MLWClient::set_fw_execute_function()
+{
+    if(_firmware) {
+        M2MObjectInstance *inst = _firmware->object_instance(0);
+        if(inst) {
+            M2MResource *res = inst->resource("2");
+            if (res) {                
+                res->set_execute_function(execute_callback(
+                                              this,
+                                              &M2MLWClient::fw_execute_function));
+            }
+        }
+    }
+}
+
 bool M2MLWClient::create_object(const char *name,
                                 bool new_instance,
                                 uint8_t object_operation,
@@ -336,7 +413,7 @@ bool M2MLWClient::create_dynamic_resource_string(const char *name,
         if(inst) {
             M2MResource *res = inst->create_dynamic_resource(name,"resource",
                                                              M2MResourceInstance::STRING,
-                                                             observable);
+                                                             observable, multiple_instance);
             if(res) {
                 success = true;
                 res->set_operation(int_to_operation(resource_operation));
@@ -362,7 +439,7 @@ bool M2MLWClient::create_dynamic_resource_int(const char *name,
         if(inst) {
             M2MResource *res = inst->create_dynamic_resource(name,"resource",
                                                              M2MResourceInstance::INTEGER,
-                                                             observable);
+                                                             observable, multiple_instance);
             if(res) {
                 success = true;
                 res->set_operation(int_to_operation(resource_operation));
@@ -620,6 +697,9 @@ bool M2MLWClient::test_register()
     if(_device) {
         object_list.push_back(_device);
     }
+    if(_firmware) {
+        object_list.push_back(_firmware);
+    }
     if(_object) {
         object_list.push_back(_object);
     }
@@ -746,4 +826,34 @@ M2MBase::Operation M2MLWClient::int_to_operation(uint8_t operation)
             break;
     }
     return op;
+}
+
+void M2MLWClient::fw_execute_function(void *argument)
+{
+    if(argument) {
+        char* arguments = (char*)argument;
+        cmd_printf("Received %s!!\n", arguments);
+    }
+    cmd_printf("Firmware update executed\n");
+}
+
+void M2MLWClient::firmware_resource_int(int resource)
+{
+    cmd_printf("Firmware resource value int\n");
+    cmd_printf("%ld\n", _firmware->resource_value_int(static_cast<M2MFirmware::FirmwareResource>(resource)));
+}
+
+void M2MLWClient::firmware_resource_string(int resource)
+{
+    cmd_printf("Firmware resource value string\n");
+    cmd_printf("%s\n", _firmware->resource_value_string(static_cast<M2MFirmware::FirmwareResource>(resource)).c_str());
+}
+
+void M2MLWClient::firmware_resource_buffer()
+{
+    cmd_printf("Firmware resource value buffer\n");
+    uint8_t *value = 0;
+    uint32_t valueSize = _firmware->resource_value_buffer(M2MFirmware::Package, value);
+    cmd_printf("%s\n", value);
+    free(value);
 }

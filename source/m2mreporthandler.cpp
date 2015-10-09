@@ -132,33 +132,38 @@ bool M2MReportHandler::parse_notification_attribute(char *&query,
     char* rest = query;
     if( sep_pos != NULL ){
         char query_options[5][20];
+        memset(query_options, 0, sizeof(query_options[0][0]) * 5 * 20);
         uint8_t num_options = 0;
         while( sep_pos != NULL && num_options < 5){
             size_t len = (size_t)(sep_pos-rest);
             if( len > 19 ){
                 len = 19;
             }
-            strncpy(query_options[num_options], rest, len);
-            sep_pos++;
-            query_options[num_options++][len] = '\0';
+            memcpy(query_options[num_options], rest, len);
+            sep_pos++;            
             rest = sep_pos;
             sep_pos = strchr(rest, '&');
+            num_options++;
         }
         if( num_options < 5 && strlen(rest) > 0){
             size_t len = (size_t)strlen(rest);
             if( len > 19 ){
                 len = 19;
             }
-            strncpy(query_options[num_options++], rest, len);
+            memcpy(query_options[num_options++], rest, len);
         }
+
         float pmin = _pmin;
         float pmax = _pmax;
         float lt = _lt;
         float gt = _gt;
         float st = _st;
+        float high = _high_step;
+        float low = _low_step;
+        int attr = _attribute_state;
+
         for (int option = 0; option < num_options; option++) {
-            if(set_notification_attribute(query_options[option],type)) {
-                tr_debug("M2MReportHandler::parse_notification_attribute - Set Notification Attribute True");
+            if(set_notification_attribute(query_options[option],type)) {        
                 success = true;
             }
         }
@@ -171,11 +176,17 @@ bool M2MReportHandler::parse_notification_attribute(char *&query,
             _st = st;
             _lt = lt;
             _gt = gt;
+            _high_step = high;
+            _low_step = low;
+            _attribute_state = attr;
         }
+        else {
+            set_under_observation(!(_attribute_state & M2MReportHandler::Cancel) == M2MReportHandler::Cancel);
+            }
     }
     else {
-        if(set_notification_attribute(query, type)) {
-            tr_debug("M2MReportHandler::parse_notification_attribute - Set Notification Attribute True");
+        if(set_notification_attribute(query, type)) {            
+            set_under_observation(!(_attribute_state & M2MReportHandler::Cancel) == M2MReportHandler::Cancel);
             success = true;
         }
     }
@@ -218,18 +229,18 @@ bool M2MReportHandler::set_notification_attribute(char* option,
 {
     tr_debug("M2MReportHandler::set_notification_attribute()");
     bool success = false;
-    bool observation = true;
-    char attribute[20] = {'\0'};
-    char value[20] = {'\0'};
+    char attribute[20];
+    char value[20];
+    memset(&attribute, 0, 20);
+    memset(&value, 0, 20);
 
     char* pos = strstr(option, EQUAL.c_str());
     if( pos != NULL ){
-        strncpy(attribute, option, (size_t)(pos-option));
+        memcpy(attribute, option, (size_t)(pos-option));
         pos++;
-        attribute[pos-option] = '\0';
-        strncpy(value, pos, 20);
+        memcpy(value, pos, 20);
     }else{
-        strncpy(attribute, option, (size_t)strlen(option));
+        memcpy(attribute, option, (size_t)strlen(option) + 1);
     }
 
     if (strcmp(attribute, PMIN.c_str()) == 0) {
@@ -268,15 +279,10 @@ bool M2MReportHandler::set_notification_attribute(char* option,
         tr_debug("M2MReportHandler::set_notification_attribute %s to %f", attribute, _st);
     }
     else if(strcmp(attribute, CANCEL.c_str()) == 0) {
-        observation = false;
         success = true;
         _attribute_state |= M2MReportHandler::Cancel;
-    }
-
-    if(success) {
-        tr_debug("M2MReportHandler::set_notification_attribute %s - set under observation", attribute);
-        set_under_observation(observation);
-    }
+        tr_debug("M2MReportHandler::set_notification_attribute cancel");
+    }   
     return success;
 }
 
@@ -294,7 +300,7 @@ void M2MReportHandler::schedule_report(float value)
     }
 }
 
-void M2MReportHandler::report(float value)
+void M2MReportHandler::report(float /*value*/)
 {
     tr_debug("M2MReportHandler::report()");
     if(_under_observation && _current_value != _last_value && _notify) {
@@ -341,7 +347,7 @@ bool M2MReportHandler::check_attribute_validity()
 {
     bool success = true;
     if ((_attribute_state & M2MReportHandler::Pmax) == M2MReportHandler::Pmax &&
-            ((_pmax >= -1.0f) && (_pmin > _pmax))) {
+            ((_pmax >= -1.0f) && (_pmin >= _pmax))) {
         success = false;
     }
     float low = _lt + 2 * _st;

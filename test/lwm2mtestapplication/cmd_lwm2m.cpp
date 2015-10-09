@@ -117,6 +117,16 @@
                                     "   --utc_offset <name>   UTC Format\n"\
                                     "   --timezone <name>   Time zone \n"\
                                     "   --instance_id <n>   Instance ID for multiple resources \n"\
+                                    "firmware <p> [options]\n"\
+                                    "<p>:\n"\
+                                    "   Options for firmware object \n"\
+                                    "   --package <name>       Firmware package\n"\
+                                    "   --package_uri <name>       URI from where the device can download package\n"\
+                                    "   --state <n>      State of firmware update\n"\
+                                    "   --update_supported_objects <bool>        Send update registration message after fw update\n"\
+                                    "   --update_results <n>   Result of downloading or updating firmware\n"\
+                                    "   --package_name <name>   Package name\n"\
+                                    "   --package_version <name>   Package version\n"\
                                     "register_object <p> [options]\n"\
                                     "<p>:\n"\
                                     "   Options for register command\n"\
@@ -140,7 +150,11 @@
                                     "   --name <name>               Resource name (Mandatory)\n"\
                                     "   --value <value>             Resource value (Mandatory)\n"\
                                     "   --object_instance <n>       Instance ID of object this resource is associated with, default is 0\n"\
-                                    "   --resource_instance <n>     Instance ID of object of the resource, default is 0\n"
+                                    "   --resource_instance <n>     Instance ID of object of the resource, default is 0\n"\
+                                    "resource_value <p> [options]\n"\
+                                    "<p>:\n"\
+                                    "   Options for resource_value command\n"\
+                                    "   --firmware <n>               Resource instance id in Firmware object\n"\
 
 #define EXIT_MANUAL         "exit :closes the application\n"
 
@@ -161,6 +175,8 @@ int lwm2m_client_update_register_command(int argc, char *argv[]);
 int lwm2m_client_unregister_command();
 int lwm2m_client_set_value_command(int argc, char *argv[]);
 int lwm2m_client_set_value_instance_command(int argc, char *argv[]);
+int lwm2m_client_firmware_command(int argc, char *argv[]);
+int lwm2m_client_resource_value(int argc, char *argv[]);
 int exit_command(int argc, char *argv[]);
 
 void  lwm2m_command_init(void)
@@ -196,6 +212,14 @@ int lwm2m_client_command(int argc, char *argv[])
     else if( strcmp(argv[1], "device") == 0 )
     {
       return lwm2m_client_device_command(argc, argv);
+    }
+    else if( strcmp(argv[1], "firmware") == 0 )
+    {
+      return lwm2m_client_firmware_command(argc, argv);
+    }
+    else if( strcmp(argv[1], "resource_value") == 0 )
+    {
+      return lwm2m_client_resource_value(argc, argv);
     }
     else if( strcmp(argv[1], "object") == 0 )
     {
@@ -459,6 +483,84 @@ int lwm2m_client_device_command(int argc, char *argv[])
    }
 
    return return_code;
+}
+
+int lwm2m_client_firmware_command(int argc, char *argv[])
+{
+    int return_code = CMDLINE_RETCODE_SUCCESS;// CMDLINE_RETCODE_INVALID_PARAMETERS;
+    char *package = 0;
+    char *package_uri = 0;
+    char *package_name = 0;
+    char *package_version = 0;
+    int32_t state = 1;
+    int32_t update_result = 0;
+    int32_t update_supported_objects = 0;
+
+    lwm2m_client.create_firmware_object();
+
+    if(cmd_parameter_val(argc, argv, "--package", &package)) {
+        uint16_t length = (uint16_t)sizeof(package);
+        if(!lwm2m_client.create_firmware_object(M2MFirmware::Package,
+                                          (const uint8_t*)package, length)) {
+            return CMDLINE_RETCODE_INVALID_PARAMETERS;
+        }
+    }
+
+    if(cmd_parameter_val(argc, argv, "--package_uri", &package_uri)) {
+        if(!lwm2m_client.create_firmware_object(M2MFirmware::PackageUri,
+                                          package_uri)) {
+            return CMDLINE_RETCODE_INVALID_PARAMETERS;
+        }
+    }
+    if(cmd_parameter_int(argc, argv, "--state", &state)) {
+        if(!lwm2m_client.create_firmware_object(M2MFirmware::State,
+                                          state)) {
+            return CMDLINE_RETCODE_INVALID_PARAMETERS;
+        }
+    }
+    if(cmd_parameter_int(argc, argv, "--update_supported_objects", &update_supported_objects)) {
+        if(!lwm2m_client.create_firmware_object(M2MFirmware::UpdateSupportedObjects,
+                                          update_supported_objects)) {
+            return CMDLINE_RETCODE_INVALID_PARAMETERS;
+        }
+    }
+    if(cmd_parameter_int(argc, argv, "--update_results", &update_result)) {
+        if(!lwm2m_client.create_firmware_object(M2MFirmware::UpdateResult,
+                                          update_result)) {
+            return CMDLINE_RETCODE_INVALID_PARAMETERS;
+        }
+    }
+    if(cmd_parameter_val(argc, argv, "--package_name", &package_name)) {
+        if(!lwm2m_client.create_firmware_object(M2MFirmware::PackageName,
+                                          package_name)) {
+            return CMDLINE_RETCODE_INVALID_PARAMETERS;
+        }
+    }
+    if(cmd_parameter_val(argc, argv, "--package_version", &package_version)) {
+        if(!lwm2m_client.create_firmware_object(M2MFirmware::PackageVersion,
+                                          package_version)) {
+            return CMDLINE_RETCODE_INVALID_PARAMETERS;
+        }
+    }
+    lwm2m_client.set_fw_execute_function();
+    return return_code;
+}
+
+int lwm2m_client_resource_value(int argc, char *argv[])
+{
+    int resource = 0;
+    if(cmd_parameter_int(argc, argv, "--firmware", &resource)) {
+        if (resource == 3 || resource == 4 || resource == 5) {
+            lwm2m_client.firmware_resource_int(resource);
+        }
+        else if (resource == 0) {
+            lwm2m_client.firmware_resource_buffer();
+        }
+        else {
+            lwm2m_client.firmware_resource_string(resource);
+        }
+    }
+    return CMDLINE_RETCODE_SUCCESS;
 }
 
 int lwm2m_client_object_command(int argc, char *argv[])

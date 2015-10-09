@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include "mbed-client/m2mvector.h"
 #include "mbed-client/m2mconfig.h"
+#include "mbed-client/functionpointer.h"
 
 //FORWARD DECLARATION
 class M2MSecurity;
@@ -26,6 +27,7 @@ class M2MObject;
 class M2MInterfaceObserver;
 
 typedef Vector<M2MObject *> M2MObjectList;
+typedef FP callback_handler;
 
 /**
  *  @brief M2MInterface.
@@ -67,7 +69,9 @@ public:
         UDP_QUEUE = 0x03,
         SMS = 0x04,
         SMS_QUEUE =0x06,
-        UDP_SMS_QUEUE = 0x07
+        UDP_SMS_QUEUE = 0x07,
+        TCP = 0x08, //not real value, spec does not have one!
+        TCP_QUEUE = 0x09 //not real value, spec does not have one!
     }BindingMode;
 
     /**
@@ -93,14 +97,14 @@ public:
      * server information.
      * NOTE: This API is not supported for developers!!
      * @param security_object, Security object which contains information
-     * required for successful bootstrapping of the client.     
+     * required for successful bootstrapping of the client.
      */
     virtual void bootstrap(M2MSecurity *security_object) = 0;
 
     /**
      * @brief Cancels on going bootstrapping operation of the client. If the client has
      * already successfully bootstrapped then this function deletes existing
-     * bootstrap information from the client.     
+     * bootstrap information from the client.
      * NOTE: This API is not supported for developers!!
      */
     virtual void cancel_bootstrap() = 0;
@@ -135,6 +139,14 @@ public:
      * then this parameter can be NULL.
      */
     virtual void unregister_object(M2MSecurity* security_object = NULL) = 0;
+
+    /**
+     * @brief Sets the function which will be called indicating client
+     * is going to sleep when the Binding mode is selected with Queue mode.
+     * @param callback, Function pointer which will be called when client
+     * goes to seleep.
+     */
+    virtual void set_queue_sleep_handler(callback_handler handler) = 0;
 
 };
 

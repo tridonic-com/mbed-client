@@ -18,10 +18,11 @@
 #include "include/eventdata.h"
 #include "mbed-client/m2minterfaceobserver.h"
 #include "mbed-client/m2mconnectionhandler.h"
-#include "mbed-client/m2mconnectionhandlerfactory.h"
+#include "mbed-client/m2mconnectionsecurity.h"
 #include "include/m2mnsdlinterface.h"
 #include "mbed-client/m2msecurity.h"
 #include "mbed-client/m2mconstants.h"
+#include "mbed-client/m2mtimer.h"
 #include "ns_trace.h"
 
 M2MInterfaceImpl::M2MInterfaceImpl(M2MInterfaceObserver& observer,
@@ -30,7 +31,7 @@ M2MInterfaceImpl::M2MInterfaceImpl(M2MInterfaceObserver& observer,
                                    const int32_t l_time,
                                    const uint16_t listen_port,
                                    const String &dmn,
-                                   BindingMode mode ,
+                                   M2MInterface::BindingMode mode,
                                    M2MInterface::NetworkStack stack,
                                    const String &con_addr)
 : _observer(observer),
@@ -49,8 +50,19 @@ M2MInterfaceImpl::M2MInterfaceImpl(M2MInterfaceObserver& observer,
   _register_server(NULL),
   _event_ignored(false),
   _register_ongoing(false),
-  _update_register_ongoing(false)
+  _update_register_ongoing(false),
+  _queue_sleep_timer(new M2MTimer(*this)),
+  _callback_handler(NULL)
 {
+    M2MConnectionSecurity::SecurityMode sec_mode = M2MConnectionSecurity::DTLS;
+    //Hack for now
+    if( _binding_mode == M2MInterface::TCP ){
+        _binding_mode = M2MInterface::UDP;
+        sec_mode = M2MConnectionSecurity::TLS;
+    }else if( _binding_mode == M2MInterface::TCP_QUEUE ){
+        _binding_mode = M2MInterface::UDP_QUEUE;
+        sec_mode = M2MConnectionSecurity::TLS;
+    }
     tr_debug("M2MInterfaceImpl::M2MInterfaceImpl() -IN");
     _nsdl_interface->create_endpoint(_endpoint_name,
                                      _endpoint_type,
@@ -59,7 +71,8 @@ M2MInterfaceImpl::M2MInterfaceImpl(M2MInterfaceObserver& observer,
                                      (uint8_t)_binding_mode,
                                      _context_address);
 
-    _connection_handler = M2MConnectionHandlerFactory::createConnectionHandler(*this,stack);
+    //Here we must use TCP still
+    _connection_handler = new M2MConnectionHandler(*this, new M2MConnectionSecurity(sec_mode), mode, stack);
 
     _connection_handler->bind_connection(_listen_port);
      tr_debug("M2MInterfaceImpl::M2MInterfaceImpl() -OUT");
@@ -69,6 +82,7 @@ M2MInterfaceImpl::M2MInterfaceImpl(M2MInterfaceObserver& observer,
 M2MInterfaceImpl::~M2MInterfaceImpl()
 {
     tr_debug("M2MInterfaceImpl::~M2MInterfaceImpl() - IN");
+    delete _queue_sleep_timer;
     delete _nsdl_interface;
     _connection_handler->stop_listening();
     delete _connection_handler;
@@ -232,6 +246,12 @@ void M2MInterfaceImpl::unregister_object(M2MSecurity* /*security*/)
     tr_debug("M2MInterfaceImpl::unregister_object(M2MSecurity *security) - OUT");
 }
 
+void M2MInterfaceImpl::set_queue_sleep_handler(callback_handler handler)
+{
+    tr_debug("M2MInterfaceImpl::set_queue_sleep_handler()");
+    _callback_handler = handler;
+}
+
 void M2MInterfaceImpl::coap_message_ready(uint8_t *data_ptr,
                                           uint16_t data_len,
                                           sn_nsdl_addr_s *address_ptr)
@@ -346,7 +366,27 @@ void M2MInterfaceImpl::address_ready(const M2MConnectionObserver::SocketAddress 
 void M2MInterfaceImpl::data_sent()
 {
     tr_debug("M2MInterfaceImpl::data_sent()");
+    if(_binding_mode == M2MInterface::UDP_QUEUE ||
+       _binding_mode == M2MInterface::TCP_QUEUE  ||
+       _binding_mode == M2MInterface::SMS_QUEUE  ||
+       _binding_mode == M2MInterface::UDP_SMS_QUEUE) {
+        if(_callback_handler) {
+            _queue_sleep_timer->stop_timer();
+            _queue_sleep_timer->start_timer(RETRY_COUNT*RETRY_INTERVAL*1000, M2MTimerObserver::QueueSleep);
+        }
+    }
     internal_event(STATE_COAP_DATA_SENT);
+}
+
+void M2MInterfaceImpl::timer_expired(M2MTimerObserver::Type type)
+{
+    tr_debug("M2MInterfaceImpl::timer_expired()");
+    if(M2MTimerObserver::QueueSleep == type) {
+        _queue_sleep_timer->stop_timer();
+        if(_callback_handler) {
+            _callback_handler();
+        }
+    }
 }
 
 // state machine sits here.

@@ -133,6 +133,11 @@ public:
     virtual bool set_value(const uint8_t *value, const uint32_t value_length);
 
     /**
+     * @brief Clears the value of the given resource.
+     */
+    virtual void clear_value();
+
+    /**
      * @brief Executes the function which is set in "set_execute_function".
      * @param arguments, arguments that will be passed to execute which
      * needs to be executed.
@@ -195,6 +200,10 @@ public:
 
 private:
 
+    void report(float value);
+
+private:
+
     M2MObjectInstanceCallback               &_object_instance_callback;
     execute_callback                        _execute_callback;
     uint8_t                                 *_value;
@@ -209,6 +218,9 @@ private:
     friend class Test_M2MSecurity;
     friend class Test_M2MServer;
     friend class Test_M2MNsdlInterface;
+    friend class Test_M2MFirmware;
+    friend class Test_M2MTLVSerializer;
+    friend class Test_M2MTLVDeserializer;
 };
 
 #endif // M2M_RESOURCE_INSTANCE_H

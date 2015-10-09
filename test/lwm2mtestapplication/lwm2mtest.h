@@ -20,6 +20,7 @@
 #include "mbed-client/m2minterfaceobserver.h"
 #include "mbed-client/m2mobjectinstance.h"
 #include "mbed-client/m2mresource.h"
+#include "mbed-client/m2mfirmware.h"
 
 class M2MLWClient: public M2MInterfaceObserver {
 public:
@@ -53,6 +54,23 @@ public:
 
     bool create_device_object(M2MDevice::DeviceResource resource,
                               int64_t value);
+
+    bool create_firmware_object();
+
+    bool create_firmware_object(M2MFirmware::FirmwareResource resource,
+                              const char *value);
+
+    bool create_firmware_object(M2MFirmware::FirmwareResource resource,
+                              int64_t value);
+
+    bool create_firmware_object(M2MFirmware::FirmwareResource resource,
+                                const uint8_t *value,
+                                const uint32_t length);
+
+    void firmware_resource_int(int resource);
+    void firmware_resource_string(int resource);
+
+    void firmware_resource_buffer();
 
     bool create_object(const char *name,
                        bool new_instance,
@@ -146,9 +164,13 @@ public:
 
     void value_updated(M2MBase *base, M2MBase::BaseType type);
 
+    void set_fw_execute_function();
+
 private:
 
     M2MBase::Operation int_to_operation(uint8_t operation);
+    void fw_execute_function(void *argument);
+
 
 private:
 
@@ -156,6 +178,7 @@ private:
     M2MSecurity         *_security;
     M2MSecurity         *_register_security;
     M2MDevice           *_device;
+    M2MFirmware         *_firmware;
     M2MObject           *_object;
     bool                _bootstrapped;
     bool                _error;
