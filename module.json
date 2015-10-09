@@ -11,7 +11,7 @@
   },
   "targetDependencies": {
     "arm": {
-      "mbed-client-mbed-os": "~1.0.0",
+      "mbed-client-mbed-os": "https://github.com/markus-becker-tridonic-com/mbed-client#master"
     },
     "linux": {
       "mbed-client-linux": "~1.0.0",
