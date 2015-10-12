@@ -11,7 +11,8 @@
   },
   "targetDependencies": {
     "arm": {
-      "mbed-client-mbed-os": "https://github.com/tridonic-com/mbed-client-mbed-os#all-tridonic-changes"
+      "mbed-client-mbed-os": "https://github.com/tridonic-com/mbed-client-mbed-os#all-tridonic-changes",
+      "mbed-client-mbedtls": "~1.0.0"
     },
     "linux": {
       "mbed-client-linux": "~1.0.0",
