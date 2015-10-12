@@ -10,9 +10,16 @@
     "mbed-client-c": "~1.0.0"
   },
   "targetDependencies": {
-    "arm": {
+    "freescale": {
       "mbed-client-mbed-os": "https://github.com/tridonic-com/mbed-client-mbed-os#all-tridonic-changes",
       "mbed-client-mbedtls": "~1.0.0"
+    },
+    "stm32f4": {
+      "mbed-client-mbed-os": "https://github.com/tridonic-com/mbed-client-mbed-os#all-tridonic-changes",
+      "mbed-client-mbedtls": "~1.0.0"
+    },
+    "stm32f0": {
+      "mbed-client-mbed-os": "https://github.com/tridonic-com/mbed-client-mbed-os#all-tridonic-changes"
     },
     "linux": {
       "mbed-client-linux": "~1.0.0",
