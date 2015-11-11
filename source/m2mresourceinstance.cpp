@@ -141,13 +141,19 @@ void M2MResourceInstance::clear_value()
          _value = NULL;
          _value_length = 0;
     }
-    report(0);
+    report();
 }
 
 bool M2MResourceInstance::set_value(const uint8_t *value,
                                     const uint32_t value_length)
 {
     bool success = false;
+    bool string_value_changed = false;
+    if(_resource_type == M2MResourceInstance::STRING) {
+        if(is_value_changed(value,value_length)) {
+            string_value_changed = true;
+        }
+    }
     if( value != NULL && value_length > 0 ) {
         success = true;
         if(_value) {
@@ -160,25 +166,32 @@ bool M2MResourceInstance::set_value(const uint8_t *value,
             memset(_value, 0, value_length+1);
             memcpy((uint8_t *)_value, (uint8_t *)value, value_length);
             _value_length = value_length;
-            report(atof((const char*)_value));
+            if(string_value_changed) {
+                M2MReportHandler *report_handler = M2MBase::report_handler();
+                if(report_handler) {
+                    report_handler->set_string_notification_trigger();
+                }
+            } else {
+                report();
+            }
         }
     }
+
     return success;
 }
 
 
-void M2MResourceInstance::report(float value)
+void M2MResourceInstance::report()
 {
+    tr_debug("M2MResourceInstance::report()");
     if(M2MBase::Dynamic == mode()) {
         M2MReportHandler *report_handler = M2MBase::report_handler();
         if( report_handler && _resource_type != M2MResourceInstance::STRING) {
-            report_handler->set_value(value);
-        }
-    }
-    if(M2MBase::Dynamic == mode()) {
-        M2MReportHandler *report_handler = M2MBase::report_handler();
-        if( report_handler && _resource_type != M2MResourceInstance::STRING) {
-            report_handler->set_value(atof((const char*)_value));
+            if(_value) {
+                report_handler->set_value(atof((const char*)_value));
+            } else {
+                report_handler->set_value(0);
+            }
             M2MBase::Observation  observation_level = M2MBase::observation_level();
             if(M2MBase::O_Attribute == observation_level ||
                M2MBase::OI_Attribute == observation_level||
@@ -194,6 +207,26 @@ void M2MResourceInstance::report(float value)
     } else {
         tr_debug("Not supported mode");
     }
+}
+
+bool M2MResourceInstance::is_value_changed(const uint8_t* value, const uint32_t value_len)
+{
+    tr_debug("M2MResourceInstance::is_value_changed()");
+    bool changed = false;
+    if(value_len != _value_length) {
+        changed = true;
+    } else if(value && !_value) {
+        changed = true;
+    } else if(_value && !value) {
+        changed = true;
+    } else {
+        String val((const char*)value);
+        String tmp_val((const char*)_value);
+        if(!(val == tmp_val)){
+            changed = true;
+        }
+    }
+    return changed;
 }
 
 void M2MResourceInstance::execute(void *arguments)
@@ -236,30 +269,25 @@ sn_coap_hdr_s* M2MResourceInstance::handle_get_request(nsdl_s *nsdl,
                                                M2MObservationHandler *observation_handler)
 {
     tr_debug("M2MResourceInstance::handle_get_request()");
-    sn_coap_hdr_s * coap_response = NULL;
+    sn_coap_msg_code_e msg_code = COAP_MSG_CODE_RESPONSE_CONTENT;
+    sn_coap_hdr_s *coap_response = sn_nsdl_build_response(nsdl,
+                                                          received_coap_header,
+                                                          msg_code);
     if(received_coap_header) {
         // process the GET if we have registered a callback for it
         if ((operation() & SN_GRS_GET_ALLOWED) != 0) {
-            coap_response = sn_nsdl_build_response(nsdl,
-                                                   received_coap_header,
-                                                   COAP_MSG_CODE_RESPONSE_CONTENT);
             if(coap_response) {
-
-                char *content_type = (char*)malloc(20);
-                int content_type_size = snprintf(content_type, 20,"%x",coap_content_type());
-
-                coap_response->content_type_ptr = (uint8_t*)malloc(content_type_size);
+                coap_response->content_type_ptr = (uint8_t*)malloc(1);
                 if(coap_response->content_type_ptr) {
-                    memset(coap_response->content_type_ptr, 0, content_type_size);
-                    memcpy(coap_response->content_type_ptr,content_type,content_type_size);
-                    coap_response->content_type_len = (uint8_t)content_type_size;
+                    memset(coap_response->content_type_ptr, 0, 1);
+                    coap_response->content_type_len = 1;
                 }
 
-                free(content_type);
-
                 // fill in the CoAP response payload
-                coap_response->payload_len = value_length();
-                coap_response->payload_ptr = value();
+                coap_response->payload_ptr = NULL;
+                uint32_t payload_len = 0;
+                get_value(coap_response->payload_ptr,payload_len);
+                coap_response->payload_len = payload_len;
 
                 coap_response->options_list_ptr = (sn_coap_options_list_s*)malloc(sizeof(sn_coap_options_list_s));
                 memset(coap_response->options_list_ptr, 0, sizeof(sn_coap_options_list_s));
@@ -323,14 +351,13 @@ sn_coap_hdr_s* M2MResourceInstance::handle_get_request(nsdl_s *nsdl,
         }else {
             tr_error("M2MResourceInstance::handle_get_request - Return COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED");
             // Operation is not allowed.
-            coap_response = sn_nsdl_build_response(nsdl,
-                                                   received_coap_header,
-                                                   COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED);
-            if(coap_response) {
-                coap_response->options_list_ptr = 0;
-                coap_response->content_type_ptr = 0;
-            }
+            msg_code = COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED;
         }
+    } else {
+        msg_code = COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED;
+    }
+    if(coap_response) {
+        coap_response->msg_code = msg_code;
     }
     return coap_response;
 }
@@ -340,50 +367,71 @@ sn_coap_hdr_s* M2MResourceInstance::handle_put_request(nsdl_s *nsdl,
                                                M2MObservationHandler *observation_handler)
 {
     tr_debug("M2MResourceInstance::handle_put_request()");
-    sn_coap_hdr_s * coap_response = NULL;
+    sn_coap_msg_code_e msg_code = COAP_MSG_CODE_RESPONSE_CHANGED; // 2.04
+    sn_coap_hdr_s * coap_response = sn_nsdl_build_response(nsdl,
+                                                           received_coap_header,
+                                                           msg_code);
     // process the PUT if we have registered a callback for it
     if(received_coap_header) {
         if ((operation() & SN_GRS_PUT_ALLOWED) != 0) {
-            sn_coap_msg_code_e msg_code = COAP_MSG_CODE_RESPONSE_CHANGED; // 2.04
-            set_value(received_coap_header->payload_ptr, received_coap_header->payload_len);
-            if(received_coap_header->payload_ptr) {
-               tr_debug("M2MResourceInstance::handle_put_request() - Update Resource with new values");
-                if(observation_handler) {
-                    observation_handler->value_updated(this);
-                }
-            }
-            if(received_coap_header->options_list_ptr &&
-               received_coap_header->options_list_ptr->uri_query_ptr) {
-                char *query = (char*)malloc(received_coap_header->options_list_ptr->uri_query_len+1);
-                if (query){
-                    memset(query, 0, received_coap_header->options_list_ptr->uri_query_len+1);
-                    memcpy(query,
-                        received_coap_header->options_list_ptr->uri_query_ptr,
-                        received_coap_header->options_list_ptr->uri_query_len);
-                    memset(query + received_coap_header->options_list_ptr->uri_query_len,'\0',1);//String terminator
-                    tr_debug("M2MResourceInstance::handle_put_request() - Query %s", query);
-                    // if anything was updated, re-initialize the stored notification attributes
-                    if (!handle_observation_attribute(query)){
-                        tr_debug("M2MResourceInstance::handle_put_request() - Invalid query");
-                        msg_code = COAP_MSG_CODE_RESPONSE_BAD_REQUEST; // 4.00
+            uint16_t coap_content_type = 0;
+            if(received_coap_header->content_type_ptr) {
+                if(coap_response) {
+                    coap_response->content_type_ptr = (uint8_t*)malloc(received_coap_header->content_type_len);
+                    if(coap_response->content_type_ptr) {
+                        memset(coap_response->content_type_ptr, 0, received_coap_header->content_type_len);
+                        memcpy(coap_response->content_type_ptr,
+                               received_coap_header->content_type_ptr,
+                               received_coap_header->content_type_len);
+                        coap_response->content_type_len = received_coap_header->content_type_len;
+                        for(uint8_t i = 0; i < coap_response->content_type_len; i++) {
+                            coap_content_type = (coap_content_type << 8) + (coap_response->content_type_ptr[i] & 0xFF);
+                        }
                     }
-                    free(query);
                 }
             }
-            coap_response = sn_nsdl_build_response(nsdl,
-                                                   received_coap_header,
-                                                   msg_code);
+
+            tr_debug("M2MResourceInstance::handle_put_request() - Request Content-Type %d", coap_content_type);
+
+            if(COAP_CONTENT_OMA_TLV_TYPE == coap_content_type) {
+                msg_code = COAP_MSG_CODE_RESPONSE_UNSUPPORTED_CONTENT_FORMAT;
+            } else {
+                set_value(received_coap_header->payload_ptr, received_coap_header->payload_len);
+                if(received_coap_header->payload_ptr) {
+                   tr_debug("M2MResourceInstance::handle_put_request() - Update Resource with new values");
+                    if(observation_handler) {
+                        observation_handler->value_updated(this);
+                    }
+                }
+                if(received_coap_header->options_list_ptr &&
+                   received_coap_header->options_list_ptr->uri_query_ptr) {
+                    char *query = (char*)malloc(received_coap_header->options_list_ptr->uri_query_len+1);
+                    if (query){
+                        memset(query, 0, received_coap_header->options_list_ptr->uri_query_len+1);
+                        memcpy(query,
+                            received_coap_header->options_list_ptr->uri_query_ptr,
+                            received_coap_header->options_list_ptr->uri_query_len);
+                        memset(query + received_coap_header->options_list_ptr->uri_query_len,'\0',1);//String terminator
+                        tr_debug("M2MResourceInstance::handle_put_request() - Query %s", query);
+                        // if anything was updated, re-initialize the stored notification attributes
+                        if (!handle_observation_attribute(query)){
+                            tr_debug("M2MResourceInstance::handle_put_request() - Invalid query");
+                            msg_code = COAP_MSG_CODE_RESPONSE_BAD_REQUEST; // 4.00
+                        }
+                        free(query);
+                    }
+                }
+            }
         } else {
             // Operation is not allowed.
             tr_error("M2MResourceInstance::handle_put_request() - COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED");
-            coap_response = sn_nsdl_build_response(nsdl,
-                                                   received_coap_header,
-                                                   COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED);
-            if(coap_response) {
-                coap_response->options_list_ptr = 0;
-                coap_response->content_type_ptr = 0;
-            }
+            msg_code = COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED;
         }
+    } else {
+        msg_code = COAP_MSG_CODE_RESPONSE_METHOD_NOT_ALLOWED;
+    }
+    if(coap_response) {
+        coap_response->msg_code = msg_code;
     }
     return coap_response;
 }

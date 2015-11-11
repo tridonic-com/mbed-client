@@ -381,11 +381,11 @@ void M2MInterfaceImpl::data_sent()
 void M2MInterfaceImpl::timer_expired(M2MTimerObserver::Type type)
 {
     tr_debug("M2MInterfaceImpl::timer_expired()");
-    if(M2MTimerObserver::QueueSleep == type) {
-        _queue_sleep_timer->stop_timer();
+    if(M2MTimerObserver::QueueSleep == type) {        
         if(_callback_handler) {
             _callback_handler();
         }
+    _queue_sleep_timer->stop_timer();
     }
 }
 
@@ -494,6 +494,7 @@ void M2MInterfaceImpl::state_register( EventData *data)
     tr_debug("M2MInterfaceImpl::state_register");
     // Start with registration preparation
     bool success = false;
+    M2MInterface::Error error = M2MInterface::InvalidParameters;
     if(data) {
         M2MRegisterData *event = (M2MRegisterData *)data;
         M2MSecurity *security = event->_object;
@@ -523,9 +524,12 @@ void M2MInterfaceImpl::state_register( EventData *data)
                                                                           port,
                                                                           M2MConnectionObserver::LWM2MServer,
                                                                           security)) {
-                              tr_debug("M2MInterfaceImpl::state_register - resolve_server_address - success");
-                               success = true;
-                           }
+                                tr_debug("M2MInterfaceImpl::state_register - resolve_server_address - success");
+                                success = true;
+                            } else {
+                                tr_error("M2MInterfaceImpl::state_register - set error as M2MInterface::NetworkError");
+                                error = M2MInterface::NetworkError;
+                            }
                         }
                     }
                 }
@@ -533,9 +537,9 @@ void M2MInterfaceImpl::state_register( EventData *data)
         }
     }
     if(!success) {
-        tr_error("M2MInterfaceImpl::state_register - M2MInterface::InvalidParameters");
+        tr_error("M2MInterfaceImpl::state_register - Error Occured %d", (int)error);
         internal_event(STATE_IDLE);
-        _observer.error(M2MInterface::InvalidParameters);
+        _observer.error(error);
     }
 }
 
