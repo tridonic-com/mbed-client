@@ -72,7 +72,11 @@ M2MInterfaceImpl::M2MInterfaceImpl(M2MInterfaceObserver& observer,
                                      _context_address);
 
     //Here we must use TCP still
+#if defined(YOTTA_CFG_TRIDONIC_ILB_DEVICE)     
+    _connection_handler = new M2MConnectionHandler(*this, NULL, mode, stack);
+#else
     _connection_handler = new M2MConnectionHandler(*this, new M2MConnectionSecurity(sec_mode), mode, stack);
+#endif
 
     _connection_handler->bind_connection(_listen_port);
      tr_debug("M2MInterfaceImpl::M2MInterfaceImpl() -OUT");
