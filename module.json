@@ -15,11 +15,11 @@
       "mbed-client-mbedtls": "^1.0.0"
     },
     "stm32f4": {
-      "mbed-client-mbed-os": "tridonic-com/mbed-client-mbed-os#all-tridonic-changes",
+      "mbed-client-mbed-os": "tridonic-com/mbed-client-mbed-os#tridonic",
       "mbed-client-mbedtls": "~1.0.0"
     },
     "stm32f0": {
-      "mbed-client-mbed-os": "tridonic-com/mbed-client-mbed-os#all-tridonic-changes"
+      "mbed-client-mbed-os": "tridonic-com/mbed-client-mbed-os#tridonic"
     },
     "linux": {
       "mbed-client-linux": "^1.0.0",
