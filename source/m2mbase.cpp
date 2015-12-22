@@ -106,9 +106,9 @@ M2MBase::M2MBase(const String & resource_name,
   _name(resource_name),
   _coap_content_type(0),
   _instance_id(0),
+  _execute_callback(NULL),
   _observable(false),
   _observation_number(0),
-  _execute_callback(NULL),
   _token(NULL),
   _token_length(0)
 {
@@ -339,7 +339,6 @@ void M2MBase::set_execute_function(execute_callback callback)
 
 void M2MBase::execute(void *arguments)
 {
-    tr_debug("M2MBase::execute");
     if(_execute_callback) {
         _execute_callback(arguments);
     }
