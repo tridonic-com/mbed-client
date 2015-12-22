@@ -46,7 +46,6 @@ M2MResourceInstance& M2MResourceInstance::operator=(const M2MResourceInstance& o
 M2MResourceInstance::M2MResourceInstance(const M2MResourceInstance& other)
 : M2MBase(other),
   _object_instance_callback(other._object_instance_callback),
-  _execute_callback(NULL),
   _value(NULL),
   _value_length(0),
   _resource_type(M2MResourceInstance::STRING)
@@ -61,7 +60,6 @@ M2MResourceInstance::M2MResourceInstance(const String &res_name,
 : M2MBase(res_name,
           M2MBase::Dynamic),
  _object_instance_callback(object_instance_callback),
- _execute_callback(NULL),
  _value(NULL),
  _value_length(0),
  _resource_type(type)
@@ -79,7 +77,6 @@ M2MResourceInstance::M2MResourceInstance(const String &res_name,
 : M2MBase(res_name,
           M2MBase::Static),
  _object_instance_callback(object_instance_callback),
- _execute_callback(NULL),
  _value(NULL),
  _value_length(0),
  _resource_type(type)
@@ -126,11 +123,6 @@ bool M2MResourceInstance::handle_observation_attribute(char *&query)
         tr_debug("M2MResourceInstance::handle_observation_attribute() - write attribute is not numerical");
         return false;
     }
-}
-
-void M2MResourceInstance::set_execute_function(execute_callback callback)
-{
-    _execute_callback = callback;
 }
 
 void M2MResourceInstance::clear_value()
@@ -227,14 +219,6 @@ bool M2MResourceInstance::is_value_changed(const uint8_t* value, const uint32_t 
         }
     }
     return changed;
-}
-
-void M2MResourceInstance::execute(void *arguments)
-{
-    tr_debug("M2MResourceInstance::execute");
-    if(_execute_callback) {
-        _execute_callback(arguments);
-    }
 }
 
 void M2MResourceInstance::get_value(uint8_t *&value, uint32_t &value_length)

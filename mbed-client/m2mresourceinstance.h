@@ -17,19 +17,11 @@
 #define M2M_RESOURCE_INSTANCE_H
 
 #include "mbed-client/m2mbase.h"
-#include "mbed-client/functionpointer.h"
 
 class M2MObjectInstanceCallback {
 public:
     virtual void notification_update(M2MBase::Observation observation_level) = 0;
 };
-
-/**
- *  @brief M2MResourceInstance.
- *  This class is the base class for mbed Client Resources based on which all defined
- *  LWM2M resource model can be created.
- */
-typedef FP1<void,void*> execute_callback;
 
 class M2MResourceInstance : public M2MBase {
 
@@ -118,13 +110,6 @@ public:
     virtual bool handle_observation_attribute(char *&query);
 
     /**
-     * @brief Sets the function which should be executed when this
-     * resource will receive POST command for this resource.
-     * @param callback, Function pointer which needs to be executed.
-     */
-    virtual void set_execute_function(execute_callback callback);
-
-    /**
      * @brief Sets the value of the given resource.
      * @param value, Pointer to the value to be set on the resource.
      * @param value_length , Length of the value pointer.
@@ -136,13 +121,6 @@ public:
      * @brief Clears the value of the given resource.
      */
     virtual void clear_value();
-
-    /**
-     * @brief Executes the function which is set in "set_execute_function".
-     * @param arguments, arguments that will be passed to execute which
-     * needs to be executed.
-     */
-    void execute(void *arguments);
 
     /**
      * @brief Provides the value of the given resource.
@@ -195,7 +173,6 @@ private:
 private:
 
     M2MObjectInstanceCallback               &_object_instance_callback;
-    execute_callback                        _execute_callback;
     uint8_t                                 *_value;
     uint32_t                                _value_length;
     ResourceType                            _resource_type;

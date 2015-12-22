@@ -32,6 +32,7 @@ M2MBase& M2MBase::operator=(const M2MBase& other)
         _interface_description = other._interface_description;
         _coap_content_type = other._coap_content_type;
         _instance_id = other._instance_id;
+        _execute_callback = other._execute_callback;
         _observable = other._observable;
         _observation_number = other._observation_number;
         _observation_level = other._observation_level;
@@ -64,6 +65,7 @@ M2MBase& M2MBase::operator=(const M2MBase& other)
 
 M2MBase::M2MBase(const M2MBase& other) :
     _report_handler(NULL),
+    _execute_callback(NULL),
     _token(NULL),
     _token_length(0)
 {
@@ -74,6 +76,7 @@ M2MBase::M2MBase(const M2MBase& other) :
     _interface_description = other._interface_description;
     _coap_content_type = other._coap_content_type;
     _instance_id = other._instance_id;
+    _execute_callback = other._execute_callback;
     _observable = other._observable;
     _observation_handler = other._observation_handler;
     _observation_number = other._observation_number;
@@ -105,6 +108,7 @@ M2MBase::M2MBase(const String & resource_name,
   _instance_id(0),
   _observable(false),
   _observation_number(0),
+  _execute_callback(NULL),
   _token(NULL),
   _token_length(0)
 {
@@ -325,6 +329,19 @@ void M2MBase::remove_object_from_coap()
 {
     if(_observation_handler) {
         _observation_handler->remove_object(this);
+    }
+}
+
+void M2MBase::set_execute_function(execute_callback callback)
+{
+    _execute_callback = callback;
+}
+
+void M2MBase::execute(void *arguments)
+{
+    tr_debug("M2MBase::execute");
+    if(_execute_callback) {
+        _execute_callback(arguments);
     }
 }
 

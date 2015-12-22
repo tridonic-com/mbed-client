@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include "mbed-client/m2mconfig.h"
 #include "mbed-client/m2mreportobserver.h"
+#include "mbed-client/functionpointer.h"
 
 //FORWARD DECLARATION
 struct sn_coap_hdr_;
@@ -28,6 +29,13 @@ struct nsdl_s;
 
 class M2MObservationHandler;
 class M2MReportHandler;
+
+/**
+ *  @brief M2MResourceInstance.
+ *  This class is the base class for mbed Client Resources based on which all defined
+ *  LWM2M resource model can be created.
+ */
+typedef FP1<void,void*> execute_callback;
 
 /**
  *  @brief M2MBase.
@@ -319,6 +327,14 @@ public:
     virtual sn_coap_hdr_s* handle_post_request(nsdl_s *nsdl,
                                                sn_coap_hdr_s *received_coap_header,
                                                M2MObservationHandler *observation_handler = NULL);
+
+    /**
+     * @brief Sets the function which should be executed when this
+     * resource will receive POST command for this resource.
+     * @param callback, Function pointer which needs to be executed.
+     */
+    virtual void set_execute_function(execute_callback callback);
+
 protected : // from M2MReportObserver
 
     virtual void observation_to_be_sent();
@@ -366,6 +382,13 @@ protected:
     */
     M2MObservationHandler* observation_handler();
 
+    /**
+     * @brief Executes the function which is set in "set_execute_function".
+     * @param arguments, arguments that will be passed to execute which
+     * needs to be executed.
+     */
+    void execute(void *arguments);
+
 private:
 
     bool is_integer(const String &value);
@@ -385,6 +408,7 @@ private:
     String                      _interface_description;
     uint8_t                     _coap_content_type;
     uint16_t                    _instance_id;
+    execute_callback            _execute_callback;
     bool                        _observable;
     uint16_t                    _observation_number;
     uint8_t                     *_token;

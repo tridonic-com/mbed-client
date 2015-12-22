@@ -467,6 +467,27 @@ sn_coap_hdr_s* M2MObject::handle_post_request(nsdl_s *nsdl,
                             delete deserializer;
                         }
                     }
+                } else if (COAP_CT_LINK_FORMAT == coap_content_type) {
+                    tr_error("M2MObject::handle_post_request - COAP_CT_LINK_FORMAT");
+
+                    void *arguments = NULL;
+                    if(received_coap_header->payload_ptr) {
+                        if(received_coap_header->payload_ptr) {
+                            arguments = (void*)malloc(received_coap_header->payload_len+1);
+                            if (arguments){
+                                memset(arguments, 0, received_coap_header->payload_len+1);
+                                memcpy(arguments,
+                                    received_coap_header->payload_ptr,
+                                    received_coap_header->payload_len);
+                            }
+                        }
+                    }
+                    tr_debug("M2MResource::handle_post_request - Execute resource function");
+                    execute(arguments);
+                    tr_debug("M2MResource::handle_post_request - result: %s", arguments);
+                    coap_response->payload_ptr = (uint8_t*)arguments;
+                    coap_response->payload_len = 6;
+                    free(arguments); //TODO: mab: leak?
                 } else {
                     msg_code =COAP_MSG_CODE_RESPONSE_UNSUPPORTED_CONTENT_FORMAT;
                 } // if(COAP_CONTENT_OMA_TLV_TYPE == coap_content_type)
