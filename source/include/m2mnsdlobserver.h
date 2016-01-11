@@ -46,7 +46,7 @@ public :
     * @param server_object, Server object associated with
     * registered server.
     */
-    virtual void client_registered(M2MServer *server_object) = 0;
+    virtual void client_registered(M2MServer *server_object, sn_coap_hdr_s *coap_header) = 0;
 
     /**
     * @brief Informs that client registration is updated successfully.

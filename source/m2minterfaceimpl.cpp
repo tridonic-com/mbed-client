@@ -269,13 +269,14 @@ void M2MInterfaceImpl::coap_message_ready(uint8_t *data_ptr,
     }
 }
 
-void M2MInterfaceImpl::client_registered(M2MServer *server_object)
+void M2MInterfaceImpl::client_registered(M2MServer *server_object, sn_coap_hdr_s *coap_header)
 {
     tr_debug("M2MInterfaceImpl::client_registered(M2MServer *server_object)");
     internal_event(STATE_REGISTERED);
+
     //Inform client is registered.
     //TODO: manage register object in a list.
-    _observer.object_registered(_register_server,*server_object);
+    _observer.object_registered(_register_server,*server_object, coap_header);
 }
 
 void M2MInterfaceImpl::registration_updated(const M2MServer &server_object)

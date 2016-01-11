@@ -355,7 +355,8 @@ uint8_t M2MNsdlInterface::received_from_server_callback(struct nsdl_s * nsdl_han
                 _server = new M2MServer();
                 _server->set_resource_value(M2MServer::ShortServerID,1);
 
-                _observer.client_registered(_server);
+                _observer.client_registered(_server, coap_header);
+
                 // If lifetime is less than zero then leave the field empty
                 if(coap_header->options_list_ptr) {
                     if(coap_header->options_list_ptr->max_age_ptr) {

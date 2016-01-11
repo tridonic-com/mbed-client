@@ -141,7 +141,7 @@ protected: // From M2MNsdlObserver
                                     uint16_t data_len,
                                     sn_nsdl_addr_s *address_ptr);
 
-    virtual void client_registered(M2MServer *server_object);
+    virtual void client_registered(M2MServer *server_object, sn_coap_hdr_s*);
 
     void registration_updated(const M2MServer &server_object);
 
